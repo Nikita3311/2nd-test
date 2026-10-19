@@ -14,3 +14,13 @@
 #map iframe{display:block;width:100%;height:100%;min-height:380px;border:0;background:#152339}
 .map-label{z-index:2;bottom:12px;left:12px}
 @media(max-width:700px){.location-grid{grid-template-columns:minmax(0,1fr)}.location-info{padding:22px}.location-info h3{margin-top:8px}.location-rows{margin:18px 0}.map-wrap,#map,#map iframe{height:320px;min-height:320px}.hero + .section-title{margin-top:30px}}
+
+/* Direct OpenStreetMap tile rendering; no iframe or Leaflet dependency. */
+#map{position:relative;overflow:hidden;height:380px;min-height:380px;background:#172b3c}
+.tile-stage{position:absolute;inset:0;overflow:hidden}
+.map-tile{position:absolute;width:256px;height:256px;max-width:none;max-height:none;display:block}
+.map-pin{position:absolute;left:50%;top:50%;width:19px;height:19px;border:3px solid #fff;background:#587cff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 7px #587cff55,0 3px 15px #0009;pointer-events:none;z-index:2}
+.map-external{position:absolute;top:12px;right:12px;z-index:4;background:#0b1424ee;color:white;border:1px solid #5e7394;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700}
+.map-external[hidden],.map-tile-error[hidden]{display:none}
+.map-tile-error{position:absolute;left:12px;right:12px;top:50%;transform:translateY(-50%);padding:14px;background:#111c2fe8;color:#e9f2ff;border-radius:10px;text-align:center;z-index:3;font-size:13px}
+@media(max-width:700px){#map{height:320px;min-height:320px}}
