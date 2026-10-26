@@ -16,34 +16,22 @@ function privacy(){const network=state.geo?.connection||{};const isp=(safe(netwo
 function flagEmoji(code){if(!/^[A-Z]{2}$/.test(code||""))return "◎";return [...code].map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join("")}
 function renderGeo(g){state.geo=g;const c=g.connection||{};set("isp",safe(c.isp));set("org",safe(c.org));set("asn",safe(c.asn));set("networkType","Network type: not independently verified");set("flag",flagEmoji(g.country_code));set("city",safe(g.city,"Location unavailable"));set("country",[g.country,g.country_code].filter(Boolean).join(" · ")||"Unknown country");set("region",safe(g.region));set("timezone",safe(g.timezone?.id));const lat=Number(g.latitude),lon=Number(g.longitude);const valid=Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180;set("coords",valid?`${lat.toFixed(3)}, ${lon.toFixed(3)}`:"Unavailable");if(valid){renderTileMap(lat,lon)}else{$("map").innerHTML='<div class="map-placeholder">Location coordinates unavailable</div>'; $("mapExternal").hidden=true};privacy()}
 function renderTileMap(lat,lon){
- const zoom=8,tileSize=256,scale=Math.pow(2,zoom);
- const x=(lon+180)/360*scale;
- const sin=Math.sin(lat*Math.PI/180);
- const y=(1-Math.log((1+sin)/(1-sin))/(2*Math.PI))/2*scale;
- const wrap=$("map");wrap.replaceChildren();
- const stage=document.createElement("div");stage.className="tile-stage";wrap.append(stage);
- const marker=document.createElement("div");marker.className="map-pin";marker.setAttribute("aria-label","Approximate IP location");wrap.append(marker);
- const status=document.createElement("div");status.className="map-tile-error";status.textContent="Map tiles unavailable. Open full map instead.";status.hidden=true;wrap.append(status);
- const link=$("mapExternal");link.href="https://www.openstreetmap.org/?mlat="+encodeURIComponent(lat)+"&mlon="+encodeURIComponent(lon)+"#map="+zoom+"/"+lat+"/"+lon;link.hidden=false;
- let loaded=0,failed=0;
- function paint(){
-  stage.replaceChildren();loaded=0;failed=0;status.hidden=true;
-  const w=wrap.clientWidth||340,h=wrap.clientHeight||320;
-  const centerX=w/2,centerY=h/2;
-  const baseX=Math.floor(x),baseY=Math.floor(y);
-  const countX=Math.ceil(w/256/2)+1,countY=Math.ceil(h/256/2)+1;
-  for(let dy=-countY;dy<=countY;dy++)for(let dx=-countX;dx<=countX;dx++){
-   const tx=baseX+dx,ty=baseY+dy;if(ty<0||ty>=scale)continue;
-   const img=document.createElement("img");img.alt="";img.decoding="async";img.className="map-tile";
-   img.style.left=(centerX+(tx-x)*tileSize)+"px";img.style.top=(centerY+(ty-y)*tileSize)+"px";
-   img.onload=()=>{loaded++;status.hidden=true};img.onerror=()=>{failed++;if(loaded===0&&failed>=3)status.hidden=false};
-   img.src="https://basemaps.cartocdn.com/dark_all/"+zoom+"/"+((tx%scale+scale)%scale)+"/"+ty+".png";
-   stage.append(img);
-  }
- }
- paint();
- if(state.mapObserver)state.mapObserver.disconnect();
- if(typeof ResizeObserver!=="undefined"){state.mapObserver=new ResizeObserver(()=>{const width=wrap.clientWidth;if(width&&width!==state.mapWidth){state.mapWidth=width;paint()}});state.mapWidth=wrap.clientWidth;state.mapObserver.observe(wrap)}
+ const wrap=$("map");
+ wrap.replaceChildren();
+ const zoom=10;
+ const padLon=0.08,padLat=0.045;
+ const west=Math.max(-180,lon-padLon),east=Math.min(180,lon+padLon);
+ const south=Math.max(-85,lat-padLat),north=Math.min(85,lat+padLat);
+ const frame=document.createElement("iframe");
+ frame.title="Map showing approximate IP location";
+ frame.loading="lazy";
+ frame.referrerPolicy="strict-origin-when-cross-origin";
+ frame.src="https://www.openstreetmap.org/export/embed.html?bbox="+[west,south,east,north].map(v=>encodeURIComponent(v)).join("%2C")+"&layer=mapnik&marker="+encodeURIComponent(lat)+"%2C"+encodeURIComponent(lon);
+ frame.style.width="100%";frame.style.height="100%";frame.style.minHeight="380px";frame.style.border="0";frame.style.display="block";
+ wrap.append(frame);
+ const link=$("mapExternal");
+ link.href="https://www.openstreetmap.org/?mlat="+encodeURIComponent(lat)+"&mlon="+encodeURIComponent(lon)+"#map="+zoom+"/"+lat+"/"+lon;
+ link.hidden=false;
 }
 function resetGeo(){state.geo=null;["isp","org","asn","region","timezone","coords"].forEach(id=>set(id,"—"));set("city","Location unavailable");set("country","Geolocation unavailable");set("flag","◎");set("networkType","Network type: unavailable");privacy()}
 async function refresh(){const run=++state.run;$("refreshBtn").disabled=true;set("mainIp","Detecting your IP…");set("heroStatus","● CHECKING");set("heroHint","Checking IPv4 and IPv6 independently");["ipv4","ipv6","isp","asn"].forEach(id=>set(id,"Checking…"));const results=await Promise.allSettled([firstValid(ipv4Sources,isIPv4),firstValid([["https://api6.ipify.org?format=json",d=>d.ip],["https://api64.ipify.org?format=json",d=>d.ip]],isIPv6)]);if(run!==state.run)return;renderAddresses(results);privacy();const ip=state.ipv4||state.ipv6;if(ip){try{const geo=await getJSON("https://ipwho.is/"+encodeURIComponent(ip));if(run!==state.run)return;if(geo.success===false)throw new Error(geo.message||"Lookup unavailable");state.geoIp=ip;renderGeo(geo)}catch(e){if(run!==state.run)return;resetGeo();toast("Location lookup unavailable — IP detection still works")}}else{resetGeo();try{const geo=await getJSON("https://ipwho.is/");if(run===state.run&&geo.success!==false){if(isIPv4(geo.ip)){state.ipv4=geo.ip;set("ipv4",geo.ip)}else if(isIPv6(geo.ip)){state.ipv6=geo.ip;set("ipv6",geo.ip)}const main=state.ipv4||state.ipv6;if(main){set("mainIp",main);set("heroStatus","● CONNECTED");set("heroHint","Public IP detected via geolocation fallback");$("copyBtn").disabled=false}renderGeo(geo)}}catch(e){console.warn("Fallback geolocation failed",e)}}$("refreshBtn").disabled=false}
