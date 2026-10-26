@@ -24,3 +24,7 @@
 .map-external[hidden],.map-tile-error[hidden]{display:none}
 .map-tile-error{position:absolute;left:12px;right:12px;top:50%;transform:translateY(-50%);padding:14px;background:#111c2fe8;color:#e9f2ff;border-radius:10px;text-align:center;z-index:3;font-size:13px}
 @media(max-width:700px){#map{height:320px;min-height:320px}}
+
+/* Map tile provider attribution */
+.map-attribution{position:absolute;right:8px;bottom:7px;z-index:4;background:#0b1424d9;color:#e9f2ff;padding:4px 7px;border-radius:5px;font-size:10px;line-height:1.3}
+.map-attribution a{color:#b9d2ff;text-decoration:underline}
