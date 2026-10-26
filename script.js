@@ -34,10 +34,10 @@ function renderTileMap(lat,lon){
   const countX=Math.ceil(w/256/2)+1,countY=Math.ceil(h/256/2)+1;
   for(let dy=-countY;dy<=countY;dy++)for(let dx=-countX;dx<=countX;dx++){
    const tx=baseX+dx,ty=baseY+dy;if(ty<0||ty>=scale)continue;
-   const img=document.createElement("img");img.alt="";img.decoding="async";img.referrerPolicy="no-referrer";img.className="map-tile";
+   const img=document.createElement("img");img.alt="";img.decoding="async";img.className="map-tile";
    img.style.left=(centerX+(tx-x)*tileSize)+"px";img.style.top=(centerY+(ty-y)*tileSize)+"px";
    img.onload=()=>{loaded++;status.hidden=true};img.onerror=()=>{failed++;if(loaded===0&&failed>=3)status.hidden=false};
-   img.src="https://tile.openstreetmap.org/"+zoom+"/"+((tx%scale+scale)%scale)+"/"+ty+".png";
+   img.src="https://basemaps.cartocdn.com/dark_all/"+zoom+"/"+((tx%scale+scale)%scale)+"/"+ty+".png";
    stage.append(img);
   }
  }
